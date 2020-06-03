@@ -16,7 +16,28 @@ class iTunes_SearchTests: XCTestCase {
         let searchResultsController = SearchResultController()
         
         let expectation = self.expectation(description: "Waiting for iTunes API")
-        searchResultsController.performSearch(for: "Candy Crush", resultType: .software) { (result) in
+        
+        let goodResultData = """
+            {
+              "resultCount": 2,
+              "results": [
+                    {
+                      "trackName": "GarageBand",
+                      "artistName": "Apple",
+                    },
+                    {
+                      "trackName": "Garage Virtual Drumset Band",
+                      "artistName": "Nexogen Private Limited",
+                    }
+                ]
+            }
+        """.data(using: .utf8)!
+        
+        let mockSession = MockURLSession(data: goodResultData, error: nil)
+        
+        searchResultsController.performSearch(for: "Candy Crush",
+                                              resultType: .software,
+                                              urlSession: mockSession) { (result) in
             switch result {
             case .success(let searchResultsArray):
                 XCTAssert(searchResultsArray.count > 0)

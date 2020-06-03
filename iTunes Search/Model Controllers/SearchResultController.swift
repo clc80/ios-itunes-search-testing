@@ -8,6 +8,36 @@
 
 import Foundation
 
+protocol NetworkSessionProtocol {
+    func fetch(with request: URLRequest, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void)
+}
+
+// Production version of `NetworkSessionProtocol`
+extension URLSession : NetworkSessionProtocol {
+    func fetch(with request: URLRequest, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
+        
+        let dataTask = self.dataTask(with: request, completionHandler: completionHandler)
+
+        dataTask.resume()
+    }
+}
+
+// Testing version of 'Network Session Protocol'
+class MockURLSession: NetworkSessionProtocol {
+    
+    let data: Data?
+    let error: Error?
+    init (data: Data?, error: Error?) {
+        self.data = data
+        self.error = error
+    }
+    
+    func fetch(with request: URLRequest, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
+        DispatchQueue.global().async {
+            completionHandler(self.data, nil, self.error)
+        }
+    }
+}
 class SearchResultController {
     
     // escaping: It will be run later. It will happen after the function finishes. Will be asynchronously
@@ -24,7 +54,9 @@ class SearchResultController {
         let baseURL = URL(string: "https://itunes.apple.com/search")!
     
     
-    func performSearch(for searchTerm: String, resultType: ResultType, completion: @escaping (Result<[SearchResult], PerformSearchError>) -> Void) {
+    func performSearch(for searchTerm: String, resultType: ResultType,
+                       urlSession: NetworkSessionProtocol,
+                       completion: @escaping (Result<[SearchResult], PerformSearchError>) -> Void) {
         
         // Preparing the parameters for our URL request.
         var urlComponents = URLComponents(url: baseURL, resolvingAgainstBaseURL: true)
@@ -47,7 +79,9 @@ class SearchResultController {
         request.httpMethod = HTTPMethod.get.rawValue
         
         // Begin a network request to the iTunes API.
-        let dataTask = URLSession.shared.dataTask(with: request) { (possibleData, _, possibleError) in
+        urlSession.fetch(with: request) { (possibleData, _, possibleError) in
+        
+        //let dataTask = urlSession.dataTask(with: request) { (possibleData, _, possibleError) in
             
             // What queue are we in? We're in a Background Queue
             // We are making sure that there are no networking errors
@@ -73,6 +107,5 @@ class SearchResultController {
                 completion(.failure(.invalidJSON(error)))
             }
         }
-        dataTask.resume()
     }
 }
