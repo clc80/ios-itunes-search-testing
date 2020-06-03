@@ -18,7 +18,11 @@ class SearchResultController {
         case networkError(Error)
         case invalidStateNoErrorButNoDataEither
         case invalidJSON(Error)
-    }
+        }
+    
+        // MARK: Properties
+        let baseURL = URL(string: "https://itunes.apple.com/search")!
+    
     
     func performSearch(for searchTerm: String, resultType: ResultType, completion: @escaping (Result<[SearchResult], PerformSearchError>) -> Void) {
         
@@ -62,17 +66,13 @@ class SearchResultController {
                 // Decode the data we receied into a JSON
                 let jsonDecoder = JSONDecoder()
                 let searchResults = try jsonDecoder.decode(SearchResults.self, from: data)
-                self.searchResults = searchResults.results
+
                 // We're finished
                 completion(.success(searchResults.results))
             } catch {
                 completion(.failure(.invalidJSON(error)))
             }
         }
-        
         dataTask.resume()
     }
-    
-    let baseURL = URL(string: "https://itunes.apple.com/search")!
-    var searchResults: [SearchResult] = []
 }
